@@ -1,12 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
-import {
-  allowQuestion,
-  cachedAnswer,
-  isSameOrigin,
-  MAX_QUESTION_LENGTH,
-  rememberAnswer,
-} from "@/lib/ask-limits";
+import { MAX_QUESTION_LENGTH } from "@/lib/ask-config";
+import { allowQuestion, cachedAnswer, isSameOrigin, rememberAnswer } from "@/lib/ask-limits";
 import { SYSTEM_PROMPT } from "@/lib/knowledge";
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
@@ -30,18 +25,25 @@ export async function POST(request: Request) {
     return fail(`Keep it under ${MAX_QUESTION_LENGTH} characters.`, 400);
   }
 
-  const cached = cachedAnswer(question);
+  const cached = await cachedAnswer(question);
   if (cached) return NextResponse.json(cached);
 
   const visitor =
     request.headers.get("x-vercel-forwarded-for") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown";
-  if (!allowQuestion(visitor)) {
-    return fail("That's a lot of questions at once. Try again later.", 429);
+  const { allowed, store } = await allowQuestion(visitor);
+  if (!allowed) {
+    const denied = fail("That's a lot of questions at once. Try again later.", 429);
+    denied.headers.set("x-limit-store", store);
+    return denied;
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) return fail("This isn't switched on yet.", 503);
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const off = fail("This isn't switched on yet.", 503);
+    off.headers.set("x-limit-store", store);
+    return off;
+  }
 
   try {
     const client = new Anthropic({ timeout: 20_000, maxRetries: 1 });
@@ -68,8 +70,8 @@ export async function POST(request: Request) {
 
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
     const { answer, source } = JSON.parse(text) as { answer: string; source: string };
-    rememberAnswer(question, answer, source);
-    return NextResponse.json({ answer, source });
+    await rememberAnswer(question, { answer, source });
+    return NextResponse.json({ answer, source }, { headers: { "x-limit-store": store } });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) {
       return fail("This is busy right now. Try again in a minute.", 429);

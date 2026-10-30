@@ -9,11 +9,11 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` and set `ANTHROPIC_API_KEY` to turn on the ask bar. Everything else works without it.
+Copy `.env.example` to `.env.local` and set `ANTHROPIC_API_KEY` to turn on the ask bar. Everything else works without it. Connect Upstash Redis to make its rate limits survive restarts; without it they fall back to memory.
 
 ## Where things live
 
 - `lib/content.ts`: all the words on the page, and the LinkedIn and resume links
 - `lib/sky.ts`: the sky colors for each hour in each city
 - `lib/scene.ts`: the drawn LA and Providence scenery
-- `lib/knowledge.ts` and `app/api/ask/route.ts`: the ask bar, which answers only from the page's own content
+- `lib/knowledge.ts`, `lib/ask-limits.ts` and `app/api/ask/route.ts`: the ask bar, which answers only from the page's own content

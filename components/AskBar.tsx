@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MAX_QUESTION_LENGTH } from "@/lib/ask-limits";
+import { MAX_QUESTION_LENGTH } from "@/lib/ask-config";
 import { EMAIL } from "@/lib/content";
 
 const STARTERS = [
