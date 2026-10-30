@@ -166,20 +166,8 @@ export const EXPERIENCE = [
   },
 ];
 
-export const PLACES = [
-  {
-    place: "East LA",
-    name: "Tamale Day",
-    body: "Hours of spreading masa on corn husks with my whole family every December.",
-  },
-  {
-    place: "Temple City",
-    name: "Spring rolls",
-    body: "Folding rice paper with my Vietnamese grandma before temple.",
-  },
-  {
-    place: "Skid Row",
-    name: "Sunday lunches",
-    body: "Serving lunch with Union Rescue Mission and Grass Roots Neighbors.",
-  },
-];
+export const VOLUNTEERING = {
+  when: "Sundays",
+  name: "Union Rescue Mission and Grass Roots Neighbors",
+  body: "I volunteer with both shelter support and street outreach teams in Los Angeles, serving Sunday lunches and handing out meals, clothing and personal care items to unhoused individuals and families.",
+};

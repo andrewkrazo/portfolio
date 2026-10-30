@@ -1,4 +1,4 @@
-import { EMAIL, EXPERIENCE, PLACES, PROJECTS } from "./content";
+import { EMAIL, EXPERIENCE, PROJECTS, VOLUNTEERING } from "./content";
 
 /*
  * What the ask bar is allowed to know. Built from the same content as the page,
@@ -18,8 +18,6 @@ ${p.live ? `Live: ${p.live.href}` : "No public demo. Code is available on reques
 const experience = EXPERIENCE.map(
   (e) => `- ${e.name} (${e.when}): ${e.body}${e.award ? ` Award: ${e.award}.` : ""}`,
 ).join("\n");
-
-const personal = PLACES.map((p) => `- ${p.place}: ${p.name}. ${p.body}`).join("\n");
 
 export const SYSTEM_PROMPT = `You answer questions from recruiters and engineers visiting Andrew Razo's portfolio site. Use only the sources below.
 
@@ -51,5 +49,5 @@ ${projects}
 
 <source name="About">
 Five-time California state finalist (four times in cross country, once in track) and captain of the cross country and track team at Palisades Charter. Plays bass in a band called The Spectrum and guitar. Also does jiu-jitsu and chess, and plays intramural basketball at Brown. Hispanic Scholarship Fund Scholar.
-${personal}
+Volunteering, ${VOLUNTEERING.when}, with ${VOLUNTEERING.name}: ${VOLUNTEERING.body}
 </source>`;

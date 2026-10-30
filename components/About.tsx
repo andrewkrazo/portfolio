@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { EXPERIENCE, PLACES } from "@/lib/content";
+import { EXPERIENCE, VOLUNTEERING } from "@/lib/content";
 
 const FINALIST_COUNT = 5;
 
@@ -116,13 +116,9 @@ export function About() {
           </div>
 
           <div className="fact f-home">
-            {PLACES.map((p) => (
-              <div key={p.name}>
-                <div className="place">{p.place}</div>
-                <h3>{p.name}</h3>
-                <p>{p.body}</p>
-              </div>
-            ))}
+            <div className="place">{VOLUNTEERING.when}</div>
+            <h3>{VOLUNTEERING.name}</h3>
+            <p>{VOLUNTEERING.body}</p>
           </div>
         </div>
 
