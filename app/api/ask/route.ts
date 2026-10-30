@@ -1,57 +1,53 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import {
+  allowQuestion,
+  cachedAnswer,
+  isSameOrigin,
+  MAX_QUESTION_LENGTH,
+  rememberAnswer,
+} from "@/lib/ask-limits";
 import { SYSTEM_PROMPT } from "@/lib/knowledge";
-
-const MAX_QUESTION_LENGTH = 300;
-
-// This endpoint is public and spends real money, so it has two limits.
-// They live in memory, so they reset on a cold start and are per server instance:
-// a brake rather than a guarantee. The hard cap is a spend limit on the API key.
-const PER_VISITOR = { limit: 8, windowMs: 60_000 };
-const SITE_WIDE = { limit: 300, windowMs: 60 * 60_000 };
-const hits = new Map<string, number[]>();
-
-function allow(key: string, { limit, windowMs }: { limit: number; windowMs: number }) {
-  const now = Date.now();
-  const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-  if (recent.length >= limit) return false;
-  recent.push(now);
-  hits.set(key, recent);
-  return true;
-}
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return fail("This isn't switched on yet.", 503);
-  }
+  if (!isSameOrigin(request)) return fail("Not allowed.", 403);
 
-  let question: unknown;
+  let body: { question?: unknown; website?: unknown };
   try {
-    ({ question } = await request.json());
+    body = await request.json();
   } catch {
     return fail("That didn't look like a question.", 400);
   }
-  if (typeof question !== "string" || !question.trim()) {
-    return fail("Type a question first.", 400);
-  }
+
+  // `website` is a field people can't see. Only bots fill it in, and they learn nothing from the reply.
+  if (body.website) return NextResponse.json({ answer: "Thanks for asking.", source: "None" });
+
+  const question = typeof body.question === "string" ? body.question.trim() : "";
+  if (!question) return fail("Type a question first.", 400);
   if (question.length > MAX_QUESTION_LENGTH) {
     return fail(`Keep it under ${MAX_QUESTION_LENGTH} characters.`, 400);
   }
 
-  const visitor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!allow(`ip:${visitor}`, PER_VISITOR) || !allow("site", SITE_WIDE)) {
-    return fail("That's a lot of questions at once. Try again in a minute.", 429);
+  const cached = cachedAnswer(question);
+  if (cached) return NextResponse.json(cached);
+
+  const visitor =
+    request.headers.get("x-vercel-forwarded-for") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  if (!allowQuestion(visitor)) {
+    return fail("That's a lot of questions at once. Try again later.", 429);
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) return fail("This isn't switched on yet.", 503);
+
   try {
-    const client = new Anthropic();
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 1500,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+    const client = new Anthropic({ timeout: 20_000, maxRetries: 1 });
+    const response = await client.messages.create({
+      model: "claude-haiku-5-5",
+      max_tokens: 1000,
       output_config: {
         effort: "low",
         format: {
@@ -65,14 +61,14 @@ export async function POST(request: Request) {
         },
       },
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: question.trim() }],
+      messages: [{ role: "user", content: question }],
     });
 
-    if (response.stop_reason === "refusal") {
-      return fail("I can't answer that one here.", 422);
-    }
+    if (response.stop_reason === "refusal") return fail("I can't answer that one here.", 422);
+
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
     const { answer, source } = JSON.parse(text) as { answer: string; source: string };
+    rememberAnswer(question, answer, source);
     return NextResponse.json({ answer, source });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) {

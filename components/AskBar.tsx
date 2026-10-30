@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MAX_QUESTION_LENGTH } from "@/lib/ask-limits";
 import { EMAIL } from "@/lib/content";
 
 const STARTERS = [
@@ -18,6 +19,7 @@ type Result =
 export function AskBar() {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<Result>({ kind: "idle" });
+  const [website, setWebsite] = useState(""); // hidden from people; see app/api/ask/route.ts
 
   async function ask(q: string) {
     const trimmed = q.trim();
@@ -28,7 +30,7 @@ export function AskBar() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: trimmed }),
+        body: JSON.stringify({ question: trimmed, website }),
       });
       const data = await res.json();
       if (res.ok) setResult({ kind: "answer", answer: data.answer, source: data.source });
@@ -51,10 +53,19 @@ export function AskBar() {
         <input
           id="ask-input"
           value={question}
-          maxLength={300}
+          maxLength={MAX_QUESTION_LENGTH}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask anything about my work..."
           autoComplete="off"
+        />
+        <input
+          className="hp"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
         />
         <button disabled={result.kind === "loading"}>{result.kind === "loading" ? "Asking" : "Ask"}</button>
       </form>
