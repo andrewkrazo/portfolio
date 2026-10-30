@@ -63,12 +63,13 @@ export const PROJECTS: Project[] = [
     name: "Rizdum",
     where: "Brown",
     line: "Ranked 2v2 duo matchmaking over live video.",
-    tags: ["Next.js", "LiveKit"],
+    tags: ["Next.js", "LiveKit", "Supabase"],
     stack: "Next.js, TypeScript, LiveKit, Supabase, Tailwind",
     bullets: [
-      "Built a Next.js and React app with live video in LiveKit and a checkpoint system where both duos vote to keep talking at 1, 5, 15 and 30 minutes",
-      "Designed the full game loop: duo and solo queues, daily quests, double-XP events, leaderboards and rank-ups from Iron to Radiant",
-      "Shipped a presentation demo where every screen works end to end, ready to swap in a Supabase backend",
+      "Built real-time 1v1 and 2v2 video calls with LiveKit, using server-issued access tokens so only matched players can join a call room",
+      "Engineered matchmaking on Supabase Postgres: party invite codes, a live queue and a locked matching function that keeps simultaneous requests from double-matching a party",
+      "Synced checkpoint votes and in-call chat between browsers over LiveKit data messages, so every player reaches the same result at each checkpoint",
+      "Designed the game loop around the calls: daily quests, double-XP events, leaderboards and rank-ups from Iron to Radiant",
     ],
     shots: [
       shot("rizdum-call", "A Rizdum 2v2 video call with a checkpoint vote"),
@@ -77,7 +78,7 @@ export const PROJECTS: Project[] = [
       shot("rizdum-leaderboards", "Rizdum's leaderboards"),
     ],
     cardShots: 1,
-    live: { href: "https://rizdum.vercel.app/", label: "Try the demo" },
+    live: { href: "https://rizdum.vercel.app/", label: "Try it live" },
   },
   {
     id: "loops",
