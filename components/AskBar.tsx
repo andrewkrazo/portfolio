@@ -1,0 +1,89 @@
+"use client";
+
+import { useState } from "react";
+import { EMAIL } from "@/lib/content";
+
+const STARTERS = [
+  "What has Andrew built with AI?",
+  "Has Andrew worked with real clients?",
+  "What's the tech stack?",
+];
+
+type Result =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "answer"; answer: string; source: string }
+  | { kind: "error"; message: string };
+
+export function AskBar() {
+  const [question, setQuestion] = useState("");
+  const [result, setResult] = useState<Result>({ kind: "idle" });
+
+  async function ask(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed || result.kind === "loading") return;
+    setQuestion(trimmed);
+    setResult({ kind: "loading" });
+    try {
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed }),
+      });
+      const data = await res.json();
+      if (res.ok) setResult({ kind: "answer", answer: data.answer, source: data.source });
+      else setResult({ kind: "error", message: data.error });
+    } catch {
+      setResult({ kind: "error", message: "That didn't go through. Check your connection and try again." });
+    }
+  }
+
+  return (
+    <>
+      <form
+        className="ask"
+        onSubmit={(e) => {
+          e.preventDefault();
+          ask(question);
+        }}
+      >
+        <label htmlFor="ask-input">Ask about my work</label>
+        <input
+          id="ask-input"
+          value={question}
+          maxLength={300}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Ask anything about my work..."
+          autoComplete="off"
+        />
+        <button disabled={result.kind === "loading"}>{result.kind === "loading" ? "Asking" : "Ask"}</button>
+      </form>
+      <div className="chips">
+        {STARTERS.map((s) => (
+          <button key={s} type="button" onClick={() => ask(s)}>
+            {s}
+          </button>
+        ))}
+      </div>
+      <div aria-live="polite">
+        {result.kind === "loading" && (
+          <div className="answer on answer-loading" aria-label="Finding an answer">
+            <i />
+            <i />
+          </div>
+        )}
+        {result.kind === "answer" && (
+          <div className="answer on">
+            {result.answer}
+            <cite>Source: {result.source}</cite>
+          </div>
+        )}
+        {result.kind === "error" && (
+          <div className="answer on">
+            {result.message} You can also email me at <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
