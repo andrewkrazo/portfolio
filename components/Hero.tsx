@@ -21,7 +21,7 @@ export function Hero() {
         <p className="sub">{INTRO}</p>
         <AskBar />
         {RESUME_URL && (
-          <a className="resume" href={RESUME_URL}>
+          <a className="resume" href={RESUME_URL} download>
             Download resume
           </a>
         )}

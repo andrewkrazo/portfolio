@@ -49,7 +49,11 @@ export function Contact() {
               LinkedIn
             </a>
           )}
-          {RESUME_URL && <a href={RESUME_URL}>Download resume</a>}
+          {RESUME_URL && (
+            <a href={RESUME_URL} download>
+              Download resume
+            </a>
+          )}
         </div>
         <div className="direct">
           <a href={`mailto:${EMAIL}`}>{EMAIL}</a>

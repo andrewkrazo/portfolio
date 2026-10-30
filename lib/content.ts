@@ -4,9 +4,9 @@ export const EMAIL = "andrew_razo@brown.edu";
 export const GITHUB_URL = "https://github.com/andrewkrazo";
 
 // Buttons for these only render once a value is set.
-export const LINKEDIN_URL: string | null = null;
-// Add a copy without a phone number or home address to public/, then point this at it.
-export const RESUME_URL: string | null = null;
+export const LINKEDIN_URL: string | null = "https://www.linkedin.com/in/andrew-razo-5b22a9415";
+// This copy has no phone number or street address. Keep it that way.
+export const RESUME_URL: string | null = "/Andrew-Razo-Resume.pdf";
 
 export type ProjectId = "syllabuddy" | "rizdum" | "loops" | "placivic" | "fsab";
 
