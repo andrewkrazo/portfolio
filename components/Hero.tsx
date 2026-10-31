@@ -5,8 +5,8 @@ import { CITIES, formatHour, phaseAt } from "@/lib/sky";
 import { AskBar } from "./AskBar";
 import { useCity } from "./CityProvider";
 
-export function Hero() {
-  const { city, hour, previewing, preview, heroCanvas } = useCity();
+export function Hero({ askEnabled }: { askEnabled: boolean }) {
+  const { city, hour, previewing, preview, backToNow, heroCanvas } = useCity();
   return (
     <section className="hero" id="top">
       <div className="sky" />
@@ -19,7 +19,7 @@ export function Hero() {
           Andrew<span className="r">Razo</span>
         </h1>
         <p className="sub">{INTRO}</p>
-        <AskBar />
+        {askEnabled && <AskBar />}
         {RESUME_URL && (
           <a className="resume" href={RESUME_URL} download>
             Download resume
@@ -34,13 +34,21 @@ export function Hero() {
               {CITIES[city].name} {formatHour(hour)} · <b>{phaseAt(city, hour)[1]}</b>
               {previewing && " (preview)"}
             </div>
+            <label className="clock-label" htmlFor="sky-hour">
+              Preview another hour
+              {previewing && (
+                <button type="button" onClick={backToNow}>
+                  Back to now
+                </button>
+              )}
+            </label>
             <input
+              id="sky-hour"
               type="range"
               min={0}
               max={23.75}
               step={0.25}
               value={hour}
-              aria-label="Preview the sky at another hour"
               onChange={(e) => preview(Number(e.target.value))}
             />
           </>

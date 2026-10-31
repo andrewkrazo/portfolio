@@ -69,7 +69,10 @@ export async function POST(request: Request) {
     if (response.stop_reason === "refusal") return fail("I can't answer that one here.", 422);
 
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-    const { answer, source } = JSON.parse(text) as { answer: string; source: string };
+    const parsed = JSON.parse(text) as { answer: string; source: string };
+    // The bar shows plain text, so Markdown marks would appear literally.
+    const answer = parsed.answer.replace(/\*\*|__|`/g, "");
+    const source = parsed.source;
     await rememberAnswer(question, { answer, source });
     return NextResponse.json({ answer, source }, { headers: { "x-limit-store": store } });
   } catch (error) {

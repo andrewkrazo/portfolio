@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MAX_QUESTION_LENGTH } from "@/lib/ask-config";
 import { EMAIL } from "@/lib/content";
 
@@ -14,16 +14,28 @@ type Result =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "answer"; answer: string; source: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  | { kind: "empty" };
 
 export function AskBar() {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<Result>({ kind: "idle" });
   const [website, setWebsite] = useState(""); // hidden from people; see app/api/ask/route.ts
 
+  const [slow, setSlow] = useState(false);
+
+  // Answers can take a while: after a few seconds, say so.
+  useEffect(() => {
+    setSlow(false);
+    if (result.kind !== "loading") return;
+    const id = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(id);
+  }, [result.kind]);
+
   async function ask(q: string) {
     const trimmed = q.trim();
-    if (!trimmed || result.kind === "loading") return;
+    if (result.kind === "loading") return;
+    if (!trimmed) return setResult({ kind: "empty" });
     setQuestion(trimmed);
     setResult({ kind: "loading" });
     try {
@@ -69,6 +81,11 @@ export function AskBar() {
         />
         <button disabled={result.kind === "loading"}>{result.kind === "loading" ? "Asking" : "Ask"}</button>
       </form>
+      {question.length >= MAX_QUESTION_LENGTH - 20 && (
+        <p className="ask-count mono">
+          {question.length} of {MAX_QUESTION_LENGTH} characters
+        </p>
+      )}
       <div className="chips">
         {STARTERS.map((s) => (
           <button key={s} type="button" onClick={() => ask(s)}>
@@ -81,12 +98,14 @@ export function AskBar() {
           <div className="answer on answer-loading" aria-label="Finding an answer">
             <i />
             <i />
+            {slow && <span>Still working on it...</span>}
           </div>
         )}
+        {result.kind === "empty" && <div className="answer on">Type a question first.</div>}
         {result.kind === "answer" && (
-          <div className="answer on">
+          <div className="answer on" tabIndex={0}>
             {result.answer}
-            <cite>Source: {result.source}</cite>
+            {result.source && !/^none$/i.test(result.source.trim()) && <cite>Source: {result.source}</cite>}
           </div>
         )}
         {result.kind === "error" && (

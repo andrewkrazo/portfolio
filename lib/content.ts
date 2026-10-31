@@ -168,7 +168,7 @@ export const EXPERIENCE = [
 ];
 
 export const VOLUNTEERING = {
-  when: "Sundays",
+  when: "Sundays in Los Angeles",
   name: "Union Rescue Mission and Grass Roots Neighbors",
   body: "I volunteer with both shelter support and street outreach teams in Los Angeles, serving Sunday lunches and handing out meals, clothing and personal care items to unhoused individuals and families.",
 };

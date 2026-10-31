@@ -8,17 +8,17 @@ const FINALIST_COUNT = 5;
 export function About() {
   const counter = useRef<HTMLDivElement>(null);
   const meter = useRef<HTMLDivElement>(null);
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(FINALIST_COUNT); // the real number, unless the animation runs
 
   // Count up the first time the number scrolls into view.
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setCount(0);
     let timer: ReturnType<typeof setInterval> | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
-        if (reduce) return setCount(FINALIST_COUNT);
         let n = 0;
         timer = setInterval(() => {
           n += 1;
@@ -46,9 +46,25 @@ export function About() {
   }, []);
 
   return (
-    <section className="about" id="about">
+    <section className="about">
       <div className="about-in">
-        <div className="about-top">
+        <div className="also">
+          <h2>Experience</h2>
+          <div className="also-grid">
+            {EXPERIENCE.map((job) => (
+              <div className="job" key={job.name}>
+                <div className="when mono">{job.when}</div>
+                <div>
+                  <b>{job.name}</b>
+                  <span>{job.body}</span>
+                  {job.award && <em className="award">{job.award}</em>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="about-top" id="about">
           <h2>
             Off the
             <br />
@@ -122,21 +138,6 @@ export function About() {
           </div>
         </div>
 
-        <div className="also">
-          <h3>Before the projects</h3>
-          <div className="also-grid">
-            {EXPERIENCE.map((job) => (
-              <div className="job" key={job.name}>
-                <div className="when mono">{job.when}</div>
-                <div>
-                  <b>{job.name}</b>
-                  <span>{job.body}</span>
-                  {job.award && <em className="award">{job.award}</em>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );

@@ -54,13 +54,13 @@ function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
             {project.line}
           </span>
           <span className="open" aria-hidden="true">
-            ↗
+            +
           </span>
         </>
       ) : WIDE.includes(project.id) ? (
         <>
           <span className="open" aria-hidden="true">
-            ↗
+            +
           </span>
           <div className="meta">
             <div className="top">
@@ -80,7 +80,7 @@ function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
           </div>
           <div className="shot">
             {shots.map((s) => (
-              <Screenshot key={s.src} shot={s} sizes="(max-width: 900px) 50vw, 30vw" />
+              <Screenshot key={s.src} shot={s} sizes="(max-width: 720px) 100vw, (max-width: 900px) 50vw, 30vw" />
             ))}
           </div>
         </>
@@ -88,7 +88,7 @@ function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
         <>
           <span className="where">{project.where}</span>
           <span className="open" aria-hidden="true">
-            ↗
+            +
           </span>
           <div className="shot">
             {shots.map((s) => (
@@ -119,6 +119,17 @@ function Card({ project, onOpen }: { project: Project; onOpen: () => void }) {
 function Detail({ project, onClose }: { project: Project | null; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
 
+  // Play the exit first. With reduced motion there's nothing to wait for.
+  const close = () => {
+    const dialog = ref.current!;
+    if (dialog.classList.contains("closing")) return;
+    dialog.classList.add("closing");
+    Promise.allSettled(dialog.getAnimations().map((a) => a.finished)).then(() => {
+      dialog.classList.remove("closing");
+      onClose();
+    });
+  };
+
   useEffect(() => {
     const dialog = ref.current!;
     if (project && !dialog.open) dialog.showModal();
@@ -132,8 +143,12 @@ function Detail({ project, onClose }: { project: Project | null; onClose: () => 
       data-p={project?.id}
       aria-labelledby="d-title"
       onClose={onClose}
+      onCancel={(e) => {
+        e.preventDefault(); // Esc
+        close();
+      }}
       onClick={(e) => {
-        if (e.target === ref.current) onClose(); // click on the backdrop
+        if (e.target === ref.current) close(); // click on the backdrop
       }}
     >
       {project && (
@@ -143,7 +158,7 @@ function Detail({ project, onClose }: { project: Project | null; onClose: () => 
               <h3 id="d-title">{project.name}</h3>
               <p>{project.detailLine ?? project.line}</p>
             </div>
-            <button type="button" className="d-close" onClick={onClose}>
+            <button type="button" className="d-close" onClick={close}>
               Close
             </button>
           </div>

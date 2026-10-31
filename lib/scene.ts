@@ -14,8 +14,16 @@ type Car = { x: number; lane: 0 | 1; v: number };
 type Leaf = { x: number; y: number; vx: number; vy: number; a: number; va: number; p: number; s: number; c: string };
 type Glint = { x: number; y: number; w: number; v: number };
 
-const rnd = (a: number, b: number) => a + Math.random() * (b - a);
-const pick = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
+// Seeded, so redrawing at a new size keeps the same skyline instead of shuffling it.
+let seed = 1;
+const random = () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const rnd = (a: number, b: number) => a + random() * (b - a);
+const pick = <T,>(list: readonly T[]) => list[Math.floor(random() * list.length)];
 
 const FALL = [
   ["#c9622b", "#e0853f"],
@@ -52,7 +60,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     const out: Window[] = [];
     for (let y = 8; y < height - 6; y += 9)
       for (let x = 5; x < w - 5; x += 7)
-        if (Math.random() < density) out.push({ x, y, t: Math.random() });
+        if (random() < density) out.push({ x, y, t: random() });
     return out;
   }
 
@@ -87,7 +95,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
         fronds: Array.from({ length: 7 }, () => rnd(22, 30)),
       });
     for (let i = 0; i < Math.ceil(W / 22); i++)
-      cars.push({ x: rnd(0, W), lane: Math.random() < 0.5 ? 0 : 1, v: rnd(0.4, 1.1) });
+      cars.push({ x: rnd(0, W), lane: random() < 0.5 ? 0 : 1, v: rnd(0.4, 1.1) });
   }
 
   function drawRow(row: Building[], base: number, fill: string, lightA: number, scale: number) {
@@ -168,7 +176,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     g.fillRect(x, top, w, h);
     g.fillStyle = "rgba(0,0,0,.05)";
     for (let y = top + 4; y < base; y += 5) g.fillRect(x, y, w, 1);
-    if (Math.random() < 0.6) {
+    if (random() < 0.6) {
       g.fillStyle = "#4d4f52";
       g.beginPath();
       g.moveTo(x - 3, top);
@@ -190,7 +198,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
         const wy = top + 10 + r * 26;
         g.fillStyle = "#f4f2ea";
         g.fillRect(wx - 1, wy - 1, 12, 17);
-        g.fillStyle = Math.random() < 0.15 ? "#f6e2b4" : "#b9ccd4";
+        g.fillStyle = random() < 0.15 ? "#f6e2b4" : "#b9ccd4";
         g.fillRect(wx, wy, 10, 15);
         g.fillStyle = "#f4f2ea";
         g.fillRect(wx, wy + 7, 10, 1);
@@ -348,6 +356,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = main.clientWidth;
     H = main.clientHeight;
+    seed = city === "pvd" ? 2 : 1;
     main.width = W * DPR;
     main.height = H * DPR;
     cx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -358,16 +367,20 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     else buildLA();
   }
 
-  function frame() {
-    raf = 0;
-    if (!mainVisible && !mirrorVisible) return; // nothing on screen: stop until something is
+  function paint() {
     if (city === "pvd") drawPvd();
     else drawLA();
     if (mirrorVisible) {
       fx.clearRect(0, 0, mirror.width, mirror.height);
       fx.drawImage(main, 0, 0);
     }
-    raf = requestAnimationFrame(frame);
+  }
+
+  function frame() {
+    raf = 0;
+    if (!mainVisible && !mirrorVisible) return; // nothing on screen: stop until something is
+    paint();
+    if (!reduce) raf = requestAnimationFrame(frame); // reduced motion: one still frame per change
   }
   const wake = () => {
     if (!raf) raf = requestAnimationFrame(frame);
@@ -382,22 +395,31 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
   });
   observer.observe(main);
   observer.observe(mirror);
-  window.addEventListener("resize", build);
 
   build();
   wake();
+
+  // The canvas also changes size when the hero grows, as when an answer opens.
+  const sizer = new ResizeObserver(() => {
+    if (main.clientWidth === W && main.clientHeight === H) return;
+    build();
+    paint(); // resizing clears the canvas: redraw before the browser shows it blank
+  });
+  sizer.observe(main);
 
   return {
     setCity(next: City) {
       city = next;
       build();
+      wake();
     },
     setLitShare(share: number) {
       litShare = share;
+      wake();
     },
     destroy() {
       observer.disconnect();
-      window.removeEventListener("resize", build);
+      sizer.disconnect();
       if (raf) cancelAnimationFrame(raf);
     },
   };

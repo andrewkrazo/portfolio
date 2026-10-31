@@ -10,6 +10,7 @@ type CityContext = {
   hour: number | null;
   previewing: boolean;
   preview: (hour: number) => void;
+  backToNow: () => void;
   heroCanvas: React.RefObject<HTMLCanvasElement | null>;
   contactCanvas: React.RefObject<HTMLCanvasElement | null>;
 };
@@ -33,6 +34,7 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   const showHour = useCallback((c: City, h: number) => {
     const phase = phaseAt(c, h);
     applySky(document.documentElement, phase);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", phase[2]);
     scene.current?.setLitShare(phase[7]);
     setHour(h);
   }, []);
@@ -59,6 +61,11 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
     [city, showHour],
   );
 
+  const backToNow = useCallback(() => {
+    setPreviewing(false);
+    showHour(city, cityHour(city));
+  }, [city, showHour]);
+
   // The script in <head> already picked the city before first paint; adopt its choice.
   useEffect(() => {
     scene.current = createScene(heroCanvas.current!, contactCanvas.current!);
@@ -74,7 +81,7 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   }, [city, previewing, showHour]);
 
   return (
-    <Ctx.Provider value={{ city, setCity, hour, previewing, preview, heroCanvas, contactCanvas }}>
+    <Ctx.Provider value={{ city, setCity, hour, previewing, preview, backToNow, heroCanvas, contactCanvas }}>
       {children}
     </Ctx.Provider>
   );
