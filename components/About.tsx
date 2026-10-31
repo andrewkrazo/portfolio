@@ -49,7 +49,7 @@ export function About() {
     <section className="about">
       <div className="about-in">
         <div className="also">
-          <h2>Experience</h2>
+          <h2>Experience and accolades</h2>
           <div className="also-grid">
             {EXPERIENCE.map((job) => (
               <div className="job" key={job.name}>
