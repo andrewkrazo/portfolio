@@ -8,16 +8,14 @@ import { useCity } from "./CityProvider";
 export function Contact() {
   const { city, contactCanvas } = useCity();
   const [copied, setCopied] = useState<"idle" | "yes" | "no">("idle");
-  const [otherTime, setOtherTime] = useState<string | null>(null);
-  const other = city === "pvd" ? "la" : "pvd";
+  const [providenceTime, setProvidenceTime] = useState<string | null>(null);
 
-  // Each city's page tells the time in the other one.
   useEffect(() => {
-    const tick = () => setOtherTime(cityTime(other));
+    const tick = () => setProvidenceTime(cityTime("pvd"));
     tick();
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
-  }, [other]);
+  }, []);
 
   async function copyEmail() {
     try {
@@ -59,10 +57,9 @@ export function Contact() {
           <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
         </div>
         <p className="now-pvd mono">
-          {otherTime ? (
+          {providenceTime ? (
             <>
-              It&apos;s <b>{otherTime}</b> in {CITIES[other].name},{" "}
-              {other === "la" ? "where I grew up." : "where I am now."}
+              It&apos;s <b>{providenceTime}</b> in Providence, where I am now.
             </>
           ) : (
             " "
