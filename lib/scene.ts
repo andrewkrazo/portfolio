@@ -42,6 +42,8 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
 
   let city: City = "la";
   let litShare = 0.3;
+  let night = true;
+  let pvdWindows: { x: number; y: number; t: number }[] = [];
   let W = 0;
   let H = 0;
   let DPR = 1;
@@ -114,11 +116,15 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     }
   }
 
+  // LA by night is silhouettes and lights; by day the same skyline in hazy blue-grey.
+  const LA_NIGHT = { back: "#23222c", front: "#121317", road: "#0d0e11", palm: "#0b0c0f" };
+  const LA_DAY = { back: "#a3abbb", front: "#6c7383", road: "#555b67", palm: "#2e333d" };
+
   function drawPalm(p: Palm, base: number) {
     const h = p.h * H;
     const tx = p.x + p.lean * h;
     const ty = base - h;
-    cx.strokeStyle = "#0b0c0f";
+    cx.strokeStyle = (night ? LA_NIGHT : LA_DAY).palm;
     cx.lineWidth = 3;
     cx.beginPath();
     cx.moveTo(p.x, base);
@@ -142,20 +148,27 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
   function drawLA() {
     cx.clearRect(0, 0, W, H);
     const base = H - 26;
-    drawRow(back, base - 24, "#23222c", 0.75, 0.8);
-    cx.fillStyle = "#121317";
+    const c = night ? LA_NIGHT : LA_DAY;
+    drawRow(back, base - 24, c.back, 0.75, 0.8);
+    cx.fillStyle = c.front;
     cx.fillRect(0, base - 26, W, 26); // street level: no sky between the low buildings
-    drawRow(front, base, "#121317", 0.95, 1);
+    drawRow(front, base, c.front, 0.95, 1);
     palms.forEach((p) => drawPalm(p, base));
     // freeway: headlights one way, tail lights the other
-    cx.fillStyle = "#0d0e11";
+    cx.fillStyle = c.road;
     cx.fillRect(0, base, W, 26);
-    for (const c of cars) {
-      if (!reduce) c.x += (c.lane ? 1 : -1) * c.v;
-      if (c.x > W + 10) c.x = -10;
-      if (c.x < -10) c.x = W + 10;
-      cx.fillStyle = c.lane ? "rgba(255,240,210,.9)" : "rgba(255,70,60,.85)";
-      cx.fillRect(c.x, base + (c.lane ? 8 : 16), 4, 2);
+    for (const car of cars) {
+      if (!reduce) car.x += (car.lane ? 1 : -1) * car.v;
+      if (car.x > W + 10) car.x = -10;
+      if (car.x < -10) car.x = W + 10;
+      cx.fillStyle = night
+        ? car.lane
+          ? "rgba(255,240,210,.9)"
+          : "rgba(255,70,60,.85)"
+        : car.lane
+          ? "rgba(235,236,240,.85)"
+          : "rgba(40,44,52,.8)";
+      cx.fillRect(car.x, base + (car.lane ? 8 : 16), 4, 2);
     }
     // a few windows switch on and off
     if (!reduce && Math.random() < 0.3) {
@@ -200,6 +213,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
         g.fillRect(wx - 1, wy - 1, 12, 17);
         g.fillStyle = random() < 0.15 ? "#f6e2b4" : "#b9ccd4";
         g.fillRect(wx, wy, 10, 15);
+        pvdWindows.push({ x: wx, y: wy, t: random() });
         g.fillStyle = "#f4f2ea";
         g.fillRect(wx, wy + 7, 10, 1);
       }
@@ -218,6 +232,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
 
   // Providence barely changes frame to frame, so its scenery is painted once and reused.
   function buildPvd() {
+    pvdWindows = [];
     backdrop = document.createElement("canvas");
     backdrop.width = main.width;
     backdrop.height = main.height;
@@ -293,6 +308,20 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     }
     g.fillStyle = "#8c8678";
     g.fillRect(0, base, W, 4); // stone riverbank
+    // At night: darken everything painted so far (not the sky), then light some windows.
+    if (night) {
+      g.globalCompositeOperation = "source-atop";
+      g.fillStyle = "rgba(12,18,42,.68)";
+      g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = "source-over";
+      for (const w of pvdWindows) {
+        if (w.t > litShare) continue;
+        g.fillStyle = "rgba(255,200,120,.18)";
+        g.fillRect(w.x - 3, w.y - 3, 16, 21);
+        g.fillStyle = w.t < litShare * 0.3 ? "#ffe2a8" : "#f2b766";
+        g.fillRect(w.x, w.y, 10, 15);
+      }
+    }
     leaves = Array.from({ length: Math.ceil(W / 70) }, () => ({
       x: rnd(0, W),
       y: rnd(0, H),
@@ -318,11 +347,11 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
     const base = H - 26;
     // the river moves slowly where the freeway ran in LA
     const river = cx.createLinearGradient(0, base, 0, H);
-    river.addColorStop(0, "#a8c8d4");
-    river.addColorStop(1, "#8db3c4");
+    river.addColorStop(0, night ? "#1f2b47" : "#a8c8d4");
+    river.addColorStop(1, night ? "#141d33" : "#8db3c4");
     cx.fillStyle = river;
     cx.fillRect(0, base, W, 26);
-    cx.fillStyle = "rgba(255,255,255,.55)";
+    cx.fillStyle = night ? "rgba(255,206,130,.5)" : "rgba(255,255,255,.55)"; // window light on the water
     for (const g of glints) {
       if (!reduce) {
         g.x += g.v;
@@ -414,7 +443,15 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement) 
       wake();
     },
     setLitShare(share: number) {
+      if (share === litShare) return;
       litShare = share;
+      if (city === "pvd" && night) build(); // Providence's lit windows are painted into the backdrop
+      wake();
+    },
+    setNight(next: boolean) {
+      if (next === night) return;
+      night = next;
+      if (city === "pvd") build();
       wake();
     },
     destroy() {

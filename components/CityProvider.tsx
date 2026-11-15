@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createScene } from "@/lib/scene";
-import { applySky, cityHour, phaseAt, type City } from "@/lib/sky";
+import { applySky, cityHour, DAY_HOUR, NIGHT_HOUR, phaseAt, type City, type Mode } from "@/lib/sky";
 
 type CityContext = {
   city: City;
@@ -11,6 +11,9 @@ type CityContext = {
   previewing: boolean;
   preview: (hour: number) => void;
   backToNow: () => void;
+  mode: Mode;
+  /** Jump to midday or night and stay there on later visits, until "Back to now". */
+  flipDayNight: () => void;
   heroCanvas: React.RefObject<HTMLCanvasElement | null>;
   contactCanvas: React.RefObject<HTMLCanvasElement | null>;
 };
@@ -23,17 +26,35 @@ export function useCity() {
   return value;
 }
 
+function savedLock(): number | null {
+  try {
+    const saved = localStorage.getItem("ar-mode");
+    if (saved === "day") return DAY_HOUR;
+    if (saved === "night") return NIGHT_HOUR;
+  } catch {}
+  return null;
+}
+
 export function CityProvider({ children }: { children: React.ReactNode }) {
   const [city, setCityState] = useState<City>("la");
   const [hour, setHour] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [mode, setMode] = useState<Mode>("dark");
   const heroCanvas = useRef<HTMLCanvasElement>(null);
   const contactCanvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<ReturnType<typeof createScene> | null>(null);
 
   const showHour = useCallback((c: City, h: number) => {
     const phase = phaseAt(c, h);
-    applySky(document.documentElement, phase);
+    const root = document.documentElement;
+    // At sunrise and sunset the whole page eases between light and dark.
+    if (root.dataset.theme !== phase[8]) {
+      root.classList.add("shifting");
+      setTimeout(() => root.classList.remove("shifting"), 800);
+    }
+    applySky(root, phase);
+    scene.current?.setNight(phase[8] === "dark");
+    setMode(phase[8]);
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", phase[2]);
     scene.current?.setLitShare(phase[7]);
     setHour(h);
@@ -41,14 +62,15 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
 
   const setCity = useCallback(
     (next: City) => {
-      document.documentElement.dataset.theme = next;
+      document.documentElement.dataset.city = next;
       try {
         localStorage.setItem("ar-city", next);
       } catch {}
       setCityState(next);
-      setPreviewing(false);
       scene.current?.setCity(next);
-      showHour(next, cityHour(next));
+      const locked = savedLock();
+      setPreviewing(locked !== null);
+      showHour(next, locked ?? cityHour(next));
     },
     [showHour],
   );
@@ -62,14 +84,26 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   );
 
   const backToNow = useCallback(() => {
+    try {
+      localStorage.removeItem("ar-mode");
+    } catch {}
     setPreviewing(false);
     showHour(city, cityHour(city));
   }, [city, showHour]);
 
+  const flipDayNight = useCallback(() => {
+    const toNight = mode === "light";
+    try {
+      localStorage.setItem("ar-mode", toNight ? "night" : "day");
+    } catch {}
+    setPreviewing(true);
+    showHour(city, toNight ? NIGHT_HOUR : DAY_HOUR);
+  }, [city, mode, showHour]);
+
   // The script in <head> already picked the city before first paint; adopt its choice.
   useEffect(() => {
     scene.current = createScene(heroCanvas.current!, contactCanvas.current!);
-    setCity(document.documentElement.dataset.theme === "pvd" ? "pvd" : "la");
+    setCity(document.documentElement.dataset.city === "pvd" ? "pvd" : "la");
     return () => scene.current?.destroy();
   }, [setCity]);
 
@@ -81,7 +115,7 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   }, [city, previewing, showHour]);
 
   return (
-    <Ctx.Provider value={{ city, setCity, hour, previewing, preview, backToNow, heroCanvas, contactCanvas }}>
+    <Ctx.Provider value={{ city, setCity, hour, previewing, preview, backToNow, mode, flipDayNight, heroCanvas, contactCanvas }}>
       {children}
     </Ctx.Provider>
   );

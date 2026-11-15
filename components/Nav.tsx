@@ -11,7 +11,7 @@ const OPTIONS: { id: City; label: string }[] = [
 ];
 
 export function Nav() {
-  const { city, setCity } = useCity();
+  const { city, setCity, mode, flipDayNight } = useCity();
   const [scrolled, setScrolled] = useState(false);
   const [pastHero, setPastHero] = useState(false);
 
@@ -37,12 +37,23 @@ export function Nav() {
           {RESUME_URL && <a href={RESUME_URL}>Resume</a>}
           <a href="#contact">Contact</a>
         </span>
-        <span className="mode" role="group" aria-label="Choose a city">
-          {OPTIONS.map((o) => (
-            <button key={o.id} type="button" aria-pressed={city === o.id} onClick={() => setCity(o.id)}>
-              {o.label}
-            </button>
-          ))}
+        <span className="nav-right">
+          <span className="mode" role="group" aria-label="Choose a city">
+            {OPTIONS.map((o) => (
+              <button key={o.id} type="button" aria-pressed={city === o.id} onClick={() => setCity(o.id)}>
+                {o.label}
+              </button>
+            ))}
+          </span>
+          <button
+            type="button"
+            className="daynight"
+            onClick={flipDayNight}
+            aria-label={mode === "light" ? "Switch to night" : "Switch to day"}
+            title={mode === "light" ? "Switch to night" : "Switch to day"}
+          >
+            {mode === "light" ? "☾" : "☀"}
+          </button>
         </span>
       </nav>
       {/* phones: the main nav scrolls away, so sections stay reachable from here */}
