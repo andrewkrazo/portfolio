@@ -72,8 +72,8 @@ export const PROJECTS: Project[] = [
       "Designed the game loop around the calls: daily quests, double-XP events, leaderboards and rank-ups from Iron to Radiant",
     ],
     shots: [
-      shot("rizdum-call", "A Rizdum 2v2 video call with a checkpoint vote"),
       shot("rizdum-home", "The Rizdum home screen with queues, quests and a leaderboard"),
+      shot("rizdum-call", "A Rizdum 2v2 video call with a checkpoint vote"),
       shot("rizdum-profile", "A Rizdum profile with stats and rank history"),
       shot("rizdum-leaderboards", "Rizdum's leaderboards"),
     ],
