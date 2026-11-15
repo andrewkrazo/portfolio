@@ -25,7 +25,7 @@ type CityContext = {
   preview: (hour: number) => void;
   backToNow: () => void;
   mode: Mode;
-  /** Jump to midday or night and stay there on later visits, until "Back to now". */
+  /** Jump to midday or night for this visit, until "Back to now". */
   flipDayNight: () => void;
   heroCanvas: React.RefObject<HTMLCanvasElement | null>;
   contactCanvas: React.RefObject<HTMLCanvasElement | null>;
@@ -37,15 +37,6 @@ export function useCity() {
   const value = useContext(Ctx);
   if (!value) throw new Error("useCity must be used inside CityProvider");
   return value;
-}
-
-function savedLock(): number | null {
-  try {
-    const saved = localStorage.getItem("ar-mode");
-    if (saved === "day") return DAY_HOUR;
-    if (saved === "night") return NIGHT_HOUR;
-  } catch {}
-  return null;
 }
 
 type Props = { here: Here | null; now: Record<"la" | "pvd", Conditions>; children: React.ReactNode };
@@ -85,9 +76,8 @@ export function CityProvider({ here, now, children }: Props) {
       } catch {}
       setCityState(next);
       scene.current?.setCity(next);
-      const locked = savedLock();
-      setPreviewing(locked !== null);
-      showHour(next, locked ?? cityHour(next));
+      setPreviewing(false);
+      showHour(next, cityHour(next));
     },
     [showHour],
   );
@@ -101,18 +91,12 @@ export function CityProvider({ here, now, children }: Props) {
   );
 
   const backToNow = useCallback(() => {
-    try {
-      localStorage.removeItem("ar-mode");
-    } catch {}
     setPreviewing(false);
     showHour(city, cityHour(city));
   }, [city, showHour]);
 
   const flipDayNight = useCallback(() => {
     const toNight = mode === "light";
-    try {
-      localStorage.setItem("ar-mode", toNight ? "night" : "day");
-    } catch {}
     setPreviewing(true);
     showHour(city, toNight ? NIGHT_HOUR : DAY_HOUR);
   }, [city, mode, showHour]);

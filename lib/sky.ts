@@ -156,9 +156,7 @@ if(q==='la'||q==='pvd'||(!q&&(s==='la'||s==='pvd')))return;
 var P=${JSON.stringify(phasesFor("here"))};r.dataset.city='here';
 var f=new Intl.DateTimeFormat('en-US',{timeZone:${JSON.stringify(here.tz)},hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date());
 var g=function(k){for(var i=0;i<f.length;i++)if(f[i].type===k)return +f[i].value;return 0};
-var h=g('hour')%24+g('minute')/60,p=P[0],m=null;
-try{m=localStorage.getItem('ar-mode')}catch(e){}
-if(m==='day')h=${DAY_HOUR};if(m==='night')h=${NIGHT_HOUR};
+var h=g('hour')%24+g('minute')/60,p=P[0];
 P.forEach(function(x){if(h>=x[0])p=x});
 ['--sky1','--sky2','--sky3','--sky4'].forEach(function(v,i){r.style.setProperty(v,p[i+2])});
 r.style.setProperty('--glow',p[6]);r.dataset.theme=p[8];
@@ -219,9 +217,8 @@ if(t!=='la'&&t!=='pvd'){try{t=localStorage.getItem('ar-city')}catch(e){}}
 if(t!=='pvd')t='la';r.dataset.city=t;
 var f=new Intl.DateTimeFormat('en-US',{timeZone:C[t].tz,hour:'numeric',minute:'numeric',hour12:false}).formatToParts(new Date());
 var g=function(k){for(var i=0;i<f.length;i++)if(f[i].type===k)return +f[i].value;return 0};
-var h=g('hour')%24+g('minute')/60,p=C[t].p[0],m=null;
-try{m=localStorage.getItem('ar-mode')}catch(e){}
-if(m==='day')h=${DAY_HOUR};if(m==='night')h=${NIGHT_HOUR};
+var h=g('hour')%24+g('minute')/60,p=C[t].p[0];
+try{localStorage.removeItem('ar-mode')}catch(e){}
 C[t].p.forEach(function(x){if(h>=x[0])p=x});
 ['--sky1','--sky2','--sky3','--sky4'].forEach(function(v,i){r.style.setProperty(v,p[i+2])});
 r.style.setProperty('--glow',p[6]);r.dataset.theme=p[8];
