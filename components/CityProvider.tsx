@@ -2,9 +2,20 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createScene } from "@/lib/scene";
-import { applySky, cityHour, DAY_HOUR, NIGHT_HOUR, phaseAt, type City, type Mode } from "@/lib/sky";
+import {
+  applySky,
+  cityHour,
+  DAY_HOUR,
+  NIGHT_HOUR,
+  phaseAt,
+  setHere,
+  type City,
+  type Here,
+  type Mode,
+} from "@/lib/sky";
 
 type CityContext = {
+  here: Here | null;
   city: City;
   setCity: (city: City) => void;
   hour: number | null;
@@ -35,7 +46,8 @@ function savedLock(): number | null {
   return null;
 }
 
-export function CityProvider({ children }: { children: React.ReactNode }) {
+export function CityProvider({ here, children }: { here: Here | null; children: React.ReactNode }) {
+  if (here) setHere(here);
   const [city, setCityState] = useState<City>("la");
   const [hour, setHour] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -102,10 +114,11 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
 
   // The script in <head> already picked the city before first paint; adopt its choice.
   useEffect(() => {
-    scene.current = createScene(heroCanvas.current!, contactCanvas.current!);
-    setCity(document.documentElement.dataset.city === "pvd" ? "pvd" : "la");
+    scene.current = createScene(heroCanvas.current!, contactCanvas.current!, here);
+    const chosen = document.documentElement.dataset.city;
+    setCity(chosen === "pvd" || (chosen === "here" && here) ? chosen : "la");
     return () => scene.current?.destroy();
-  }, [setCity]);
+  }, [setCity, here]);
 
   // Keep the sky on the real clock unless someone is previewing another hour.
   useEffect(() => {
@@ -115,7 +128,7 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   }, [city, previewing, showHour]);
 
   return (
-    <Ctx.Provider value={{ city, setCity, hour, previewing, preview, backToNow, mode, flipDayNight, heroCanvas, contactCanvas }}>
+    <Ctx.Provider value={{ here, city, setCity, hour, previewing, preview, backToNow, mode, flipDayNight, heroCanvas, contactCanvas }}>
       {children}
     </Ctx.Provider>
   );

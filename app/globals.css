@@ -431,3 +431,5 @@ html.shifting,html.shifting *,html.shifting *::before,html.shifting *::after{tra
 .daynight:active{transform:scale(.95)}
 .nav-right{display:flex;align-items:center}
 [data-theme="light"] .clock-label{text-shadow:0 0 4px rgba(255,255,255,.95),0 0 10px rgba(255,255,255,.8)}
+.mode .short{display:none}
+@media (max-width:560px){.mode .long{display:none}.mode .short{display:inline}.mode button{white-space:nowrap}}

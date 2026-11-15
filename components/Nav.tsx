@@ -5,13 +5,24 @@ import { RESUME_URL } from "@/lib/content";
 import type { City } from "@/lib/sky";
 import { useCity } from "./CityProvider";
 
-const OPTIONS: { id: City; label: string }[] = [
-  { id: "la", label: "Los Angeles" },
-  { id: "pvd", label: "Providence" },
-];
 
 export function Nav() {
-  const { city, setCity, mode, flipDayNight } = useCity();
+  const { here, city, setCity, mode, flipDayNight } = useCity();
+  // Phones get the short labels.
+  const hereShort = here?.landmark === "nyc" ? "NYC" : here?.landmark === "sf" ? "SF" : here?.landmark === "dc" ? "DC" : null;
+  const options: { id: City; label: string; short: string }[] = [
+    ...(here
+      ? [
+          {
+            id: "here" as const,
+            label: here.name.length <= 13 ? here.name : "Your city",
+            short: hereShort ?? (here.name.length <= 8 ? here.name : "Here"),
+          },
+        ]
+      : []),
+    { id: "la", label: "Los Angeles", short: "LA" },
+    { id: "pvd", label: "Providence", short: "PVD" },
+  ];
   const [scrolled, setScrolled] = useState(false);
   const [pastHero, setPastHero] = useState(false);
 
@@ -39,9 +50,18 @@ export function Nav() {
         </span>
         <span className="nav-right">
           <span className="mode" role="group" aria-label="Choose a city">
-            {OPTIONS.map((o) => (
-              <button key={o.id} type="button" aria-pressed={city === o.id} onClick={() => setCity(o.id)}>
-                {o.label}
+            {options.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={city === o.id}
+                aria-label={o.label}
+                onClick={() => setCity(o.id)}
+              >
+                <span className="long">{o.label}</span>
+                <span className="short" aria-hidden="true">
+                  {o.short}
+                </span>
               </button>
             ))}
           </span>
