@@ -316,7 +316,72 @@ function dc(g: G, W: number, H: number, base: number, ink: Ink, tips: number[][]
   for (let k = -5; k <= 5; k++) rect(g, cx + k * 1.1 * u, base - 11.5 * u, 0.45 * u, 5 * u);
 }
 
-const DRAW: Record<Landmark, typeof nyc> = { nyc, sf, seattle, chicago, boston, austin, dc };
+function london(g: G, W: number, H: number, base: number, ink: Ink, tips: number[][]) {
+  const u = H / 100;
+  // the Shard: a split glass spike
+  const sx = W * 0.84;
+  g.fillStyle = ink.night ? "#25283a" : "#93a6bd";
+  poly(g, [
+    [sx - 6 * u, base],
+    [sx - 0.8 * u, base - 72 * u],
+    [sx + 0.4 * u, base - 66 * u],
+    [sx + 1 * u, base - 74 * u],
+    [sx + 6 * u, base],
+  ]);
+  g.fillStyle = ink.night ? "rgba(140,170,220,.3)" : "rgba(255,255,255,.35)";
+  poly(g, [
+    [sx - 6 * u, base],
+    [sx - 0.8 * u, base - 72 * u],
+    [sx - 2 * u, base],
+  ]);
+  beacon(g, sx + 1 * u, base - 74 * u, ink, tips);
+  // the London Eye
+  const ex = W * 0.68;
+  const r = 15 * u;
+  const ey = base - 4 * u - r;
+  g.strokeStyle = ink.marble;
+  g.lineWidth = Math.max(1, 0.5 * u);
+  g.beginPath();
+  g.arc(ex, ey, r, 0, Math.PI * 2);
+  g.moveTo(ex - 5 * u, base);
+  g.lineTo(ex, ey);
+  g.lineTo(ex + 5 * u, base);
+  g.stroke();
+  g.lineWidth = 1;
+  g.beginPath();
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    g.moveTo(ex, ey);
+    g.lineTo(ex + Math.cos(a) * r, ey + Math.sin(a) * r);
+  }
+  g.stroke();
+  g.fillStyle = ink.night ? "#7fb2ff" : ink.marble; // the pods, lit blue at night
+  for (let k = 0; k < 32; k++) {
+    const a = (k / 32) * Math.PI * 2;
+    g.fillRect(ex + Math.cos(a) * r - 0.6 * u, ey + Math.sin(a) * r - 0.6 * u, 1.2 * u, 1.2 * u);
+  }
+  // Parliament and Big Ben
+  const bx = W * 0.54;
+  g.fillStyle = ink.body;
+  g.fillRect(bx - 22 * u, base - 11 * u, 22 * u, 11 * u);
+  for (let k = 0; k < 9; k++) rect(g, bx - 21 * u + k * 2.5 * u, base - 11 * u, 0.7 * u, 2.4 * u);
+  rect(g, bx - 18 * u, base, 4.5 * u, 22 * u); // Victoria Tower
+  rect(g, bx, base, 4.4 * u, 40 * u);
+  rect(g, bx, base - 40 * u, 5.4 * u, 7 * u);
+  rect(g, bx, base - 47 * u, 4.4 * u, 5 * u);
+  poly(g, [
+    [bx - 2.6 * u, base - 52 * u],
+    [bx, base - 64 * u],
+    [bx + 2.6 * u, base - 52 * u],
+  ]);
+  g.fillStyle = ink.night ? "#ffd98a" : "#f4efe2";
+  g.beginPath();
+  g.arc(bx, base - 43.5 * u, 1.9 * u, 0, Math.PI * 2);
+  g.fill();
+  beacon(g, bx, base - 64 * u, ink, tips);
+}
+
+const DRAW: Record<Landmark, typeof nyc> = { nyc, sf, seattle, chicago, boston, austin, dc, london };
 
 /** How tall the generated skyline around each landmark should be (DC keeps its height limit). */
 export const SKYLINE_HEIGHT: Record<Landmark | "generic", number> = {
@@ -327,6 +392,7 @@ export const SKYLINE_HEIGHT: Record<Landmark | "generic", number> = {
   boston: 0.42,
   austin: 0.4,
   dc: 0.16,
+  london: 0.36,
   generic: 0.5,
 };
 
@@ -336,6 +402,7 @@ export const CLEARINGS: Partial<Record<Landmark, [number, number]>> = {
   boston: [0.65, 1],
   austin: [0.45, 0.67],
   dc: [0.42, 0.86],
+  london: [0.5, 0.76],
 };
 
 /** Draws the landmark and returns where its red night lights go. */

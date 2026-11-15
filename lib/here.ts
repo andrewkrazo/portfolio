@@ -17,6 +17,7 @@ const LANDMARKS: Record<Landmark, Place> = {
   boston: { name: "Boston", lat: 42.36, lon: -71.058, tz: "America/New_York" },
   austin: { name: "Austin", lat: 30.267, lon: -97.743, tz: "America/Chicago" },
   dc: { name: "Washington", lat: 38.895, lon: -77.036, tz: "America/New_York" },
+  london: { name: "London", lat: 51.507, lon: -0.128, tz: "Europe/London" },
 };
 
 // Visitors near these already have their own tab.
@@ -26,7 +27,6 @@ const HOME = { la: { lat: 34.052, lon: -118.244 }, pvd: { lat: 41.824, lon: -71.
 const PRESETS: Record<string, Place> = {
   ...LANDMARKS,
   denver: { name: "Denver", lat: 39.739, lon: -104.99, tz: "America/Denver" },
-  london: { name: "London", lat: 51.507, lon: -0.128, tz: "Europe/London" },
   tokyo: { name: "Tokyo", lat: 35.68, lon: 139.769, tz: "Asia/Tokyo" },
   miami: { name: "Miami", lat: 25.762, lon: -80.192, tz: "America/New_York" },
 };

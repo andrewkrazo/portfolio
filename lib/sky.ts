@@ -1,6 +1,6 @@
 export type City = "here" | "la" | "pvd";
 export type Weather = "clear" | "cloudy" | "rain" | "snow" | "fog" | "storm";
-export type Landmark = "nyc" | "sf" | "seattle" | "chicago" | "boston" | "austin" | "dc";
+export type Landmark = "nyc" | "sf" | "seattle" | "chicago" | "boston" | "austin" | "dc" | "london";
 
 /** The visitor's own city, worked out on the server from their approximate location. */
 export type Here = {

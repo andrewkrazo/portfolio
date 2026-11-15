@@ -429,7 +429,8 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
     const id = here?.landmark;
     if (!night)
       return { body: "#7c8494", far: "#b9c3d1", marble: id === "austin" ? "#d9b8a8" : "#efebe2", bridge: "#c0462f", night };
-    const marble = id === "dc" ? "#c9c6bb" : id === "boston" ? "#7f9ad6" : id === "austin" ? "#8a6e66" : "#3a3b48";
+    const marble =
+      id === "dc" ? "#c9c6bb" : id === "boston" || id === "london" ? "#7f9ad6" : id === "austin" ? "#8a6e66" : "#3a3b48";
     return { body: "#1b1c26", far: "#262a3c", marble, bridge: "#b04a34", night }; // the Golden Gate is floodlit
   }
 
