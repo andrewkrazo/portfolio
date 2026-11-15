@@ -1,5 +1,9 @@
 export type City = "here" | "la" | "pvd";
 export type Weather = "clear" | "cloudy" | "rain" | "snow" | "fog" | "storm";
+/** What the sky is doing right now, from the weather service. */
+export type Conditions = { weather: Weather; cold: boolean };
+export const CLEAR: Conditions = { weather: "clear", cold: false };
+
 export type Landmark = "nyc" | "sf" | "seattle" | "chicago" | "boston" | "austin" | "dc" | "london";
 
 /** The visitor's own city, worked out on the server from their approximate location. */
@@ -81,12 +85,19 @@ export function sunTimes(lat: number, lon: number, tz: string, now = new Date())
 export const DAY_HOUR = 12.5;
 export const NIGHT_HOUR = 21.5;
 
-type CityInfo = { tz: string; name: string; lat: number; lon: number; day: (r: number, s: number) => Phase[] };
+type CityInfo = {
+  tz: string;
+  name: string;
+  lat: number;
+  lon: number;
+  day: (r: number, s: number) => Phase[];
+  now: Conditions;
+};
 
 export const CITIES: Record<City, CityInfo> = {
-  here: { tz: "America/Los_Angeles", name: "Your city", lat: 34.05, lon: -118.24, day: LA }, // filled in by setHere
-  la: { tz: "America/Los_Angeles", name: "Los Angeles", lat: 34.052, lon: -118.244, day: LA },
-  pvd: { tz: "America/New_York", name: "Providence", lat: 41.824, lon: -71.413, day: PVD },
+  here: { tz: "America/Los_Angeles", name: "Your city", lat: 34.05, lon: -118.24, day: LA, now: CLEAR }, // filled in by setHere
+  la: { tz: "America/Los_Angeles", name: "Los Angeles", lat: 34.052, lon: -118.244, day: LA, now: CLEAR },
+  pvd: { tz: "America/New_York", name: "Providence", lat: 41.824, lon: -71.413, day: PVD, now: CLEAR },
 };
 
 const phaseCache = new Map<string, Phase[]>();
@@ -94,11 +105,11 @@ const phaseCache = new Map<string, Phase[]>();
 /** A city's phases for today, rebuilt when the date (or the city) changes. */
 export function phasesFor(city: City, now = new Date()): Phase[] {
   const c = CITIES[city];
-  const key = `${city}:${c.name}:${now.toLocaleDateString("en-US", { timeZone: c.tz })}`;
+  const key = `${city}:${c.name}:${c.now.weather}:${now.toLocaleDateString("en-US", { timeZone: c.tz })}`;
   let phases = phaseCache.get(key);
   if (!phases) {
     const { rise, set } = sunTimes(c.lat, c.lon, c.tz, now);
-    phases = c.day(rise, set);
+    phases = withWeather(c.day(rise, set), c.now.weather);
     phaseCache.set(key, phases);
   }
   return phases;
@@ -115,31 +126,24 @@ function mix(a: string, b: string, t: number) {
 // Grey skies wash out the colors and hide the sun.
 const OVERCAST: Record<Weather, number> = { clear: 0, cloudy: 0.45, fog: 0.6, rain: 0.55, snow: 0.5, storm: 0.7 };
 
-/** The visitor's day, built around their real sunrise and sunset, greyed by the weather. */
-const herePhases =
-  (here: Here) =>
-  (up: number, down: number): Phase[] => {
-  const grey = OVERCAST[here.weather];
-  const raw: Phase[] = [
-    [0, "Late night", "#0e1020", "#161a2e", "#22213a", "#2a2533", 0, 0.55, "dark"],
-    [up - 1.25, "Before dawn", "#151a30", "#2c2f4f", "#5a4a6a", "#8a6a72", 0.15, 0.35, "dark"],
-    [up, "Sunrise", "#9fb4cf", "#d6c9cf", "#f6c7a2", "#fbe0c4", 0.6, 0.05, "light"],
-    [up + 2, "Morning", "#8fbde0", "#b9d6ea", "#e6ebe6", "#f3f1e8", 0.4, 0, "light"],
-    [(up + down) / 2, "Afternoon", "#7fb6e3", "#a9d1ee", "#e0eaea", "#f2f1e8", 0.3, 0, "light"],
-    [down - 1.5, "Golden hour", "#a9bfd8", "#e6c9b4", "#ffc58a", "#ffe1b8", 0.9, 0.05, "light"],
-    [down, "Sunset", "#2a1f3d", "#7a3a5c", "#ff7a45", "#ffc27a", 0.9, 0.3, "dark"],
-    [down + 1.25, "Dusk", "#1a1832", "#3c2a52", "#a8456a", "#e0714a", 0.45, 0.55, "dark"],
-    [down + 2.5, "Night", "#10122a", "#1c1d3a", "#3a2a4e", "#5a3348", 0.08, 0.7, "dark"],
-  ];
-  const label = here.weather === "clear" ? "" : ` · ${here.weather === "storm" ? "storm" : here.weather}`;
-  return raw.map(([h, name, a, b, c, d, glow, lit, mode]) => {
+/** Grey skies wash out the colors and hide the sun; the clock label says what's falling. */
+function withWeather(phases: Phase[], weather: Weather): Phase[] {
+  const grey = OVERCAST[weather];
+  if (!grey) return phases;
+  return phases.map(([h, name, a, b, c, d, glow, lit, mode]) => {
     const toward = mode === "light" ? "#c3c8cf" : "#24262e";
-    return [h, name + label, mix(a, toward, grey), mix(b, toward, grey), mix(c, toward, grey), mix(d, toward, grey), glow * (1 - grey), lit, mode];
+    return [h, `${name} · ${weather}`, mix(a, toward, grey), mix(b, toward, grey), mix(c, toward, grey), mix(d, toward, grey), glow * (1 - grey), lit, mode];
   });
-};
+}
+
+/** Set the weather for LA and Providence. */
+export function setConditions(now: Record<"la" | "pvd", Conditions>) {
+  CITIES.la.now = now.la;
+  CITIES.pvd.now = now.pvd;
+}
 
 export function setHere(here: Here) {
-  CITIES.here = { tz: here.tz, name: here.name, lat: here.lat, lon: here.lon, day: herePhases(here) };
+  CITIES.here = { tz: here.tz, name: here.name, lat: here.lat, lon: here.lon, day: LA, now: here };
 }
 
 /** Runs right after <body> opens: first visits start on the visitor's own city. */
@@ -206,7 +210,9 @@ export function applySky(root: HTMLElement, phase: Phase) {
  * Runs before first paint, so a returning visitor never sees the wrong city or
  * a default sky flash. Inlined in <head> with today's phases, so it can't import anything.
  */
-export const firstPaintScript = () => `(function(){try{
+export const firstPaintScript = (now: Record<"la" | "pvd", Conditions>) => {
+  setConditions(now);
+  return `(function(){try{
 var C=${JSON.stringify({ la: { tz: CITIES.la.tz, p: phasesFor("la") }, pvd: { tz: CITIES.pvd.tz, p: phasesFor("pvd") } })};
 var r=document.documentElement,t=new URLSearchParams(location.search).get('city');
 if(t!=='la'&&t!=='pvd'){try{t=localStorage.getItem('ar-city')}catch(e){}}
@@ -220,3 +226,4 @@ C[t].p.forEach(function(x){if(h>=x[0])p=x});
 ['--sky1','--sky2','--sky3','--sky4'].forEach(function(v,i){r.style.setProperty(v,p[i+2])});
 r.style.setProperty('--glow',p[6]);r.dataset.theme=p[8];
 }catch(e){}})();`;
+};

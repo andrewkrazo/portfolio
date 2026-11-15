@@ -1,5 +1,5 @@
 import { drawLandmark, CLEARINGS, rainier, SKYLINE_HEIGHT, type Ink } from "./landmarks";
-import type { City, Here } from "./sky";
+import type { City, Conditions, Here } from "./sky";
 
 /*
  * The hero's scenery, drawn in code on a canvas.
@@ -42,7 +42,12 @@ const FALL = [
 const RIDGE = ["#c98f5c", "#d9ad6a", "#b9a06a", "#a9b184"] as const;
 const BRICK = ["#9c4a36", "#8a3d2c", "#a8553f", "#7d3a2b"] as const;
 
-export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, here: Here | null) {
+export function createScene(
+  main: HTMLCanvasElement,
+  mirror: HTMLCanvasElement,
+  here: Here | null,
+  home: Record<"la" | "pvd", Conditions>,
+) {
   const cx = main.getContext("2d")!;
   const fx = mirror.getContext("2d")!;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -162,6 +167,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
     cx.fillStyle = c.front;
     cx.fillRect(0, base - 26, W, 26); // street level: no sky between the low buildings
     drawRow(front, base, c.front, 0.95, 1);
+    snowRoofs(base);
     palms.forEach((p) => drawPalm(p, base));
     // freeway: headlights one way, tail lights the other
     cx.fillStyle = c.road;
@@ -184,6 +190,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
       const b = pick(back);
       if (b?.win.length) pick(b.win).t = Math.random();
     }
+    drawWeather();
   }
 
   function blob(g: CanvasRenderingContext2D, x: number, y: number, r: number, c: string) {
@@ -368,7 +375,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
       }
       cx.fillRect(g.x, base + g.y, g.w, 1.5);
     }
-    for (const l of leaves) {
+    for (const l of sky().weather === "clear" || sky().weather === "cloudy" ? leaves : []) {
       if (!reduce) {
         l.y += l.vy;
         l.x += l.vx + Math.sin(l.y / 30 + l.p) * 0.35;
@@ -388,6 +395,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
       cx.fill();
       cx.restore();
     }
+    drawWeather();
   }
 
   function buildHere() {
@@ -420,70 +428,35 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
     }
     if (!h.landmark) for (let i = 0; i < Math.ceil(W / 26); i++) cars.push({ x: rnd(0, W), lane: random() < 0.5 ? 0 : 1, v: rnd(0.4, 1.1) });
     glints = Array.from({ length: Math.ceil(W / 40) }, () => ({ x: rnd(0, W), y: rnd(6, 24), w: rnd(10, 30), v: rnd(0.06, 0.2) }));
-    const falling = h.weather === "rain" || h.weather === "storm" ? Math.ceil(W / 5) : h.weather === "snow" ? Math.ceil(W / 9) : 0;
+  }
+
+  const sky = (): Conditions => (city === "here" && here ? here : city === "here" ? home.la : home[city]);
+
+  function makeDrops() {
+    const { weather } = sky();
+    const falling = weather === "rain" || weather === "storm" ? Math.ceil(W / 5) : weather === "snow" ? Math.ceil(W / 9) : 0;
     drops = Array.from({ length: falling }, () => ({ x: rnd(0, W), y: rnd(0, H), v: rnd(0.7, 1.3), s: rnd(1, 2.4) }));
   }
 
-  // Landmark colors: by day stone and steel, by night dark shapes with the famous parts lit.
-  function ink(): Ink {
-    const id = here?.landmark;
-    if (!night)
-      return { body: "#7c8494", far: "#b9c3d1", marble: id === "austin" ? "#d9b8a8" : "#efebe2", bridge: "#c0462f", night };
-    const marble =
-      id === "dc" ? "#c9c6bb" : id === "boston" || id === "london" ? "#7f9ad6" : id === "austin" ? "#8a6e66" : "#3a3b48";
-    return { body: "#1b1c26", far: "#262a3c", marble, bridge: "#b04a34", night }; // the Golden Gate is floodlit
+  /** Snow on the front row's roofs (LA and generated cities; Providence's are painted in). */
+  function snowRoofs(base: number) {
+    const now = sky();
+    if (!now.cold || now.weather !== "snow") return;
+    cx.fillStyle = night ? "#c3cad8" : "#f7f8fa";
+    for (const b of front) cx.fillRect(b.x, base - b.h * H, b.w, 3);
   }
 
-  function drawHere() {
-    const h = here!;
-    cx.clearRect(0, 0, W, H);
-    const base = H - 26;
-    const c = night ? LA_NIGHT : LA_DAY;
-    const look = ink();
-    if (h.landmark === "seattle") rainier(cx, W, H, base, look);
-    drawRow(back, base - 20, c.back, 0.75, 0.8);
-    const tips = h.landmark ? drawLandmark(cx, h.landmark, W, H, base, look) : [];
-    drawRow(front, base, c.front, 0.95, 1);
-    if (h.cold && h.weather === "snow") {
-      cx.fillStyle = night ? "#c3cad8" : "#f7f8fa"; // snow on the roofs
-      for (const b of front) cx.fillRect(b.x, base - b.h * H, b.w, 3);
-    }
-    if (night && Math.floor(Date.now() / 900) % 2) {
-      cx.fillStyle = "#ff3b30";
-      for (const [x, y] of tips) cx.fillRect(x - 1.5, y - 1.5, 3, 3);
-    }
-    // water for the landmark cities (all of them sit on a river, bay or lake), a road everywhere else
-    if (h.landmark) {
-      const water = cx.createLinearGradient(0, base, 0, H);
-      water.addColorStop(0, night ? "#1a2236" : "#8fb4c9");
-      water.addColorStop(1, night ? "#121827" : "#6f97b0");
-      cx.fillStyle = water;
-      cx.fillRect(0, base, W, 26);
-      cx.fillStyle = night ? "rgba(255,206,130,.45)" : "rgba(255,255,255,.5)";
-      for (const gl of glints) {
-        if (!reduce) gl.x = gl.x > W ? -gl.w : gl.x + gl.v;
-        cx.fillRect(gl.x, base + gl.y, gl.w, 1.5);
-      }
-    } else {
-      cx.fillStyle = c.road;
-      cx.fillRect(0, base, W, 26);
-      for (const car of cars) {
-        if (!reduce) car.x += (car.lane ? 1 : -1) * car.v;
-        if (car.x > W + 10) car.x = -10;
-        if (car.x < -10) car.x = W + 10;
-        cx.fillStyle = night ? (car.lane ? "rgba(255,240,210,.9)" : "rgba(255,70,60,.85)") : car.lane ? "rgba(235,236,240,.85)" : "rgba(40,44,52,.8)";
-        cx.fillRect(car.x, base + (car.lane ? 8 : 16), 4, 2);
-      }
-    }
-    // weather
-    if (h.weather === "fog") {
+  /** Fog, falling rain or snow, and lightning, over whichever city is showing. */
+  function drawWeather() {
+    const { weather } = sky();
+    if (weather === "fog") {
       const fog = cx.createLinearGradient(0, H * 0.2, 0, H);
       fog.addColorStop(0, night ? "rgba(42,45,56,0)" : "rgba(223,227,232,0)");
       fog.addColorStop(1, night ? "rgba(42,45,56,.7)" : "rgba(223,227,232,.75)");
       cx.fillStyle = fog;
       cx.fillRect(0, 0, W, H);
     }
-    if (h.weather === "snow") {
+    if (weather === "snow") {
       cx.fillStyle = night ? "rgba(220,228,240,.8)" : "rgba(255,255,255,.95)";
       for (const d of drops) {
         if (!reduce) {
@@ -513,7 +486,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
       }
       cx.stroke();
     }
-    if (h.weather === "storm" && !reduce) {
+    if (weather === "storm" && !reduce) {
       if (Math.random() < 0.004) flash = 1;
       if (flash > 0.02) {
         cx.fillStyle = `rgba(235,240,255,${flash * 0.35})`;
@@ -521,6 +494,57 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
         flash *= 0.85;
       }
     }
+  }
+
+  // Landmark colors: by day stone and steel, by night dark shapes with the famous parts lit.
+  function ink(): Ink {
+    const id = here?.landmark;
+    if (!night)
+      return { body: "#7c8494", far: "#b9c3d1", marble: id === "austin" ? "#d9b8a8" : "#efebe2", bridge: "#c0462f", night };
+    const marble =
+      id === "dc" ? "#c9c6bb" : id === "boston" || id === "london" ? "#7f9ad6" : id === "austin" ? "#8a6e66" : "#3a3b48";
+    return { body: "#1b1c26", far: "#262a3c", marble, bridge: "#b04a34", night }; // the Golden Gate is floodlit
+  }
+
+  function drawHere() {
+    const h = here!;
+    cx.clearRect(0, 0, W, H);
+    const base = H - 26;
+    const c = night ? LA_NIGHT : LA_DAY;
+    const look = ink();
+    if (h.landmark === "seattle") rainier(cx, W, H, base, look);
+    drawRow(back, base - 20, c.back, 0.75, 0.8);
+    const tips = h.landmark ? drawLandmark(cx, h.landmark, W, H, base, look) : [];
+    drawRow(front, base, c.front, 0.95, 1);
+    snowRoofs(base);
+    if (night && Math.floor(Date.now() / 900) % 2) {
+      cx.fillStyle = "#ff3b30";
+      for (const [x, y] of tips) cx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    }
+    // water for the landmark cities (all of them sit on a river, bay or lake), a road everywhere else
+    if (h.landmark) {
+      const water = cx.createLinearGradient(0, base, 0, H);
+      water.addColorStop(0, night ? "#1a2236" : "#8fb4c9");
+      water.addColorStop(1, night ? "#121827" : "#6f97b0");
+      cx.fillStyle = water;
+      cx.fillRect(0, base, W, 26);
+      cx.fillStyle = night ? "rgba(255,206,130,.45)" : "rgba(255,255,255,.5)";
+      for (const gl of glints) {
+        if (!reduce) gl.x = gl.x > W ? -gl.w : gl.x + gl.v;
+        cx.fillRect(gl.x, base + gl.y, gl.w, 1.5);
+      }
+    } else {
+      cx.fillStyle = c.road;
+      cx.fillRect(0, base, W, 26);
+      for (const car of cars) {
+        if (!reduce) car.x += (car.lane ? 1 : -1) * car.v;
+        if (car.x > W + 10) car.x = -10;
+        if (car.x < -10) car.x = W + 10;
+        cx.fillStyle = night ? (car.lane ? "rgba(255,240,210,.9)" : "rgba(255,70,60,.85)") : car.lane ? "rgba(235,236,240,.85)" : "rgba(40,44,52,.8)";
+        cx.fillRect(car.x, base + (car.lane ? 8 : 16), 4, 2);
+      }
+    }
+    drawWeather();
   }
 
   function build() {
@@ -537,6 +561,7 @@ export function createScene(main: HTMLCanvasElement, mirror: HTMLCanvasElement, 
     if (city === "pvd") buildPvd();
     else if (city === "here" && here) buildHere();
     else buildLA();
+    makeDrops();
   }
 
   function paint() {

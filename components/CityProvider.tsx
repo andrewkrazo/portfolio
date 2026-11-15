@@ -8,8 +8,10 @@ import {
   DAY_HOUR,
   NIGHT_HOUR,
   phaseAt,
+  setConditions,
   setHere,
   type City,
+  type Conditions,
   type Here,
   type Mode,
 } from "@/lib/sky";
@@ -46,8 +48,11 @@ function savedLock(): number | null {
   return null;
 }
 
-export function CityProvider({ here, children }: { here: Here | null; children: React.ReactNode }) {
+type Props = { here: Here | null; now: Record<"la" | "pvd", Conditions>; children: React.ReactNode };
+
+export function CityProvider({ here, now, children }: Props) {
   if (here) setHere(here);
+  setConditions(now);
   const [city, setCityState] = useState<City>("la");
   const [hour, setHour] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -114,11 +119,11 @@ export function CityProvider({ here, children }: { here: Here | null; children: 
 
   // The script in <head> already picked the city before first paint; adopt its choice.
   useEffect(() => {
-    scene.current = createScene(heroCanvas.current!, contactCanvas.current!, here);
+    scene.current = createScene(heroCanvas.current!, contactCanvas.current!, here, now);
     const chosen = document.documentElement.dataset.city;
     setCity(chosen === "pvd" || (chosen === "here" && here) ? chosen : "la");
     return () => scene.current?.destroy();
-  }, [setCity, here]);
+  }, [setCity, here, now]);
 
   // Keep the sky on the real clock unless someone is previewing another hour.
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import type { Here, Landmark, Weather } from "./sky";
+import type { Conditions, Here, Landmark, Weather } from "./sky";
 
 /*
  * The "your city" tab. Vercel adds the visitor's approximate location to every request
@@ -48,7 +48,7 @@ function weatherFrom(code: number): Weather {
   return "clear";
 }
 
-async function forecast(lat: number, lon: number) {
+async function forecast(lat: number, lon: number): Promise<Conditions | null> {
   // Rounded so nearby visitors share one cached request.
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(1)}&longitude=${lon.toFixed(1)}` +
@@ -64,6 +64,18 @@ async function forecast(lat: number, lon: number) {
   } catch {
     return null; // a slow or missing forecast never holds the page up
   }
+}
+
+const WEATHERS = ["clear", "cloudy", "rain", "snow", "fog", "storm"] as const;
+const pickWeather = (w?: string) => WEATHERS.find((x) => x === w);
+
+/** Right now in LA and Providence. ?weather=rain forces it, for trying the effects. */
+export async function homeConditions(weatherOverride?: string): Promise<Record<"la" | "pvd", Conditions>> {
+  const forced = pickWeather(weatherOverride);
+  if (forced) return { la: { weather: forced, cold: forced === "snow" }, pvd: { weather: forced, cold: forced === "snow" } };
+  const clear: Conditions = { weather: "clear", cold: false };
+  const [la, pvd] = await Promise.all([forecast(HOME.la.lat, HOME.la.lon), forecast(HOME.pvd.lat, HOME.pvd.lon)]);
+  return { la: la ?? clear, pvd: pvd ?? clear };
 }
 
 export async function getHere(preset?: string, weatherOverride?: string): Promise<Here | null> {
@@ -82,7 +94,7 @@ export async function getHere(preset?: string, weatherOverride?: string): Promis
   const landmark =
     (Object.entries(LANDMARKS).find(([, l]) => km(place, l) < 50)?.[0] as Landmark | undefined) ?? null;
   const sky = await forecast(place.lat, place.lon);
-  const weather = (["clear", "cloudy", "rain", "snow", "fog", "storm"] as const).find((w) => w === weatherOverride);
+  const weather = pickWeather(weatherOverride);
 
   return {
     name: landmark ? LANDMARKS[landmark].name : place.name,

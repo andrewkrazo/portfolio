@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Geist, Geist_Mono } from "next/font/google";
+import { homeConditions } from "@/lib/here";
 import { firstPaintScript } from "@/lib/sky";
 import "./globals.css";
 
@@ -24,11 +25,11 @@ export const viewport: Viewport = {
   themeColor: "#2a1f3d", // follows the sky once the page loads
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: firstPaintScript() }} />
+        <script dangerouslySetInnerHTML={{ __html: firstPaintScript(await homeConditions()) }} />
       </head>
       <body>{children}</body>
     </html>
