@@ -28,7 +28,7 @@ nav .links a{color:var(--text);text-decoration:none;padding:7px 14px;border-radi
  background:radial-gradient(circle,rgba(255,214,150,var(--glow)) 0%,rgba(255,138,61,calc(var(--glow)*.55)) 38%,transparent 70%);filter:blur(4px)}
 canvas#city{position:absolute;left:0;right:0;bottom:0;width:100%;height:50svh;z-index:-1}
 .sub,.chips{text-shadow:0 1px 2px rgba(10,10,16,.55),0 1px 12px rgba(10,10,16,.7)}
-.haze{position:absolute;left:0;right:0;bottom:0;height:40px;z-index:0;background:linear-gradient(180deg,transparent,var(--bg) 92%);pointer-events:none}
+.haze{position:absolute;left:0;right:0;bottom:0;height:30svh;z-index:0;background:linear-gradient(180deg,transparent,var(--bg) 92%);pointer-events:none}
 
 .copy{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:clamp(104px,15vh,150px) 32px 0}
 h1{font-family:var(--font-display);font-weight:900;font-size:clamp(84px,11.5vw,170px);line-height:.82;letter-spacing:-.01em;text-transform:uppercase}
@@ -202,6 +202,9 @@ h1 .r{display:block;padding-left:.55em;color:transparent;-webkit-text-stroke:2px
 .now-pvd{margin-top:18px;font-size:13px;color:#e0ded8}
 .now-pvd b{color:#ffd9a8;font-weight:500}
 canvas#cityFoot{position:absolute;left:0;right:0;bottom:48px;width:100%;z-index:1;pointer-events:none}
+/* the same fade as the hero, so both skylines look alike */
+.contact::after{content:"";position:absolute;left:0;right:0;bottom:48px;height:30svh;z-index:1;background:linear-gradient(180deg,transparent,var(--bg) 92%);pointer-events:none}
+[data-theme="pvd"] .contact::after{display:none}
 .foot-bar{position:absolute;left:0;right:0;bottom:0;height:48px;z-index:2;background:#0d0e11;color:#8f9097;font-size:13px;display:flex;align-items:center;justify-content:space-between;padding:0 32px}
 @media (max-width:720px){.contact{padding:80px 16px 460px}.foot-bar{padding:0 16px;font-size:12px}.foot-bar span:last-child{display:none}}
 
