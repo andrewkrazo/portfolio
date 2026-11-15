@@ -28,7 +28,7 @@ nav .links a{color:var(--text);text-decoration:none;padding:7px 14px;border-radi
  background:radial-gradient(circle,rgba(255,214,150,var(--glow)) 0%,rgba(255,138,61,calc(var(--glow)*.55)) 38%,transparent 70%);filter:blur(4px)}
 canvas#city{position:absolute;left:0;right:0;bottom:0;width:100%;height:50%;z-index:-1}
 .sub,.chips{text-shadow:0 1px 2px rgba(10,10,16,.55),0 1px 12px rgba(10,10,16,.7)}
-.haze{position:absolute;left:0;right:0;bottom:0;height:30%;z-index:0;background:linear-gradient(180deg,transparent,var(--bg) 92%);pointer-events:none}
+.haze{position:absolute;left:0;right:0;bottom:0;height:40px;z-index:0;background:linear-gradient(180deg,transparent,var(--bg) 92%);pointer-events:none}
 
 .copy{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:clamp(104px,15vh,150px) 32px 0}
 h1{font-family:var(--font-display);font-weight:900;font-size:clamp(84px,11.5vw,170px);line-height:.82;letter-spacing:-.01em;text-transform:uppercase}
@@ -287,8 +287,8 @@ canvas#cityFoot{position:absolute;left:0;right:0;bottom:48px;width:100%;z-index:
 [data-theme="pvd"] .foot-bar{background:#7d2e21;color:#f6e3d6}
 
 /* detail dialog */
-dialog.detail{margin:auto;width:min(980px,calc(100% - 32px));max-height:calc(100dvh - 48px);border:1px solid var(--line);border-radius:24px;padding:0;background:#17181c;color:var(--text);overflow:auto}
-dialog.detail::backdrop{background:rgba(8,8,12,.72);backdrop-filter:blur(6px)}
+dialog.detail{margin:auto;width:min(980px,calc(100% - 32px));max-height:calc(100dvh - 48px);border:1px solid var(--line);border-radius:24px;padding:0;background:#262830;color:var(--text);overflow:auto;border-color:rgba(255,255,255,.18);box-shadow:0 40px 100px rgba(0,0,0,.6)}
+dialog.detail::backdrop{background:rgba(4,4,7,.86);backdrop-filter:blur(8px)}
 dialog.detail[open]{animation:pop .45s cubic-bezier(.16,1,.3,1)}
 @keyframes pop{from{opacity:0;transform:translateY(24px) scale(.98)}}
 .d-head{padding:28px 30px 8px;display:flex;justify-content:space-between;gap:20px;align-items:start}
@@ -392,6 +392,9 @@ nav.scrolled{background:rgba(20,21,24,.72);backdrop-filter:blur(14px)}
 /* slider label and way back to live time */
 .clock-label{display:flex;align-items:center;gap:10px}
 .clock-label button{border:0;background:none;color:var(--accent);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0}
+.ask .ask-clear{width:42px;height:42px;padding:0;font-size:24px;line-height:1;font-weight:400;flex-shrink:0}
+.ask-note{margin-top:10px;font-size:13px;color:#d5d3cd;text-shadow:0 1px 2px rgba(10,10,16,.55),0 1px 12px rgba(10,10,16,.7)}
+[data-theme="pvd"] .ask-note{color:#29312c;text-shadow:none}
 .ask-count{margin-top:8px;font-size:12px;color:#ecebe7}
 [data-theme="pvd"] .ask-count{color:#29312c}
 .answer-loading span{font-size:13px}

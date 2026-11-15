@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MAX_QUESTION_LENGTH } from "@/lib/ask-config";
 import { EMAIL } from "@/lib/content";
 
 const STARTERS = [
   "What has Andrew built with AI?",
   "Has Andrew worked with real clients?",
-  "What's the tech stack?",
+  "What languages and frameworks does Andrew know?",
 ];
 
 type Result =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "answer"; answer: string; source: string }
-  | { kind: "error"; message: string }
+  | { kind: "answer"; answer: string; source: string; asked: string }
+  | { kind: "error"; message: string; asked: string }
   | { kind: "empty" };
 
 export function AskBar() {
@@ -23,6 +23,16 @@ export function AskBar() {
   const [website, setWebsite] = useState(""); // hidden from people; see app/api/ask/route.ts
 
   const [slow, setSlow] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+
+  // Once a question is answered, the button clears it so the next one starts fresh.
+  const answered = (result.kind === "answer" || result.kind === "error") && question === result.asked;
+
+  function clear() {
+    setQuestion("");
+    setResult({ kind: "idle" });
+    input.current?.focus();
+  }
 
   // Answers can take a while: after a few seconds, say so.
   useEffect(() => {
@@ -45,10 +55,14 @@ export function AskBar() {
         body: JSON.stringify({ question: trimmed, website }),
       });
       const data = await res.json();
-      if (res.ok) setResult({ kind: "answer", answer: data.answer, source: data.source });
-      else setResult({ kind: "error", message: data.error });
+      if (res.ok) setResult({ kind: "answer", answer: data.answer, source: data.source, asked: trimmed });
+      else setResult({ kind: "error", message: data.error, asked: trimmed });
     } catch {
-      setResult({ kind: "error", message: "That didn't go through. Check your connection and try again." });
+      setResult({
+        kind: "error",
+        message: "That didn't go through. Check your connection and try again.",
+        asked: trimmed,
+      });
     }
   }
 
@@ -58,16 +72,18 @@ export function AskBar() {
         className="ask"
         onSubmit={(e) => {
           e.preventDefault();
-          ask(question);
+          if (answered) clear();
+          else ask(question);
         }}
       >
         <label htmlFor="ask-input">Ask about my work</label>
         <input
           id="ask-input"
+          ref={input}
           value={question}
           maxLength={MAX_QUESTION_LENGTH}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask anything about my work..."
+          placeholder="Ask a question about my work..."
           autoComplete="off"
         />
         <input
@@ -79,13 +95,20 @@ export function AskBar() {
           value={website}
           onChange={(e) => setWebsite(e.target.value)}
         />
-        <button disabled={result.kind === "loading"}>{result.kind === "loading" ? "Asking" : "Ask"}</button>
+        {answered ? (
+          <button className="ask-clear" aria-label="Clear question">
+            &times;
+          </button>
+        ) : (
+          <button disabled={result.kind === "loading"}>{result.kind === "loading" ? "Asking" : "Ask"}</button>
+        )}
       </form>
       {question.length >= MAX_QUESTION_LENGTH - 20 && (
         <p className="ask-count mono">
           {question.length} of {MAX_QUESTION_LENGTH} characters
         </p>
       )}
+      <p className="ask-note">One question at a time. It doesn&apos;t remember earlier ones.</p>
       <div className="chips">
         {STARTERS.map((s) => (
           <button key={s} type="button" onClick={() => ask(s)}>
