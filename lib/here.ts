@@ -48,16 +48,11 @@ function weatherFrom(code: number): Weather {
   return "clear";
 }
 
-const hourOf = (iso: string) => {
-  const [h, m] = iso.slice(11, 16).split(":").map(Number);
-  return h + m / 60;
-};
-
 async function forecast(lat: number, lon: number) {
   // Rounded so nearby visitors share one cached request.
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(1)}&longitude=${lon.toFixed(1)}` +
-    "&current=weather_code,temperature_2m&daily=sunrise,sunset&forecast_days=1&timezone=auto";
+    "&current=weather_code,temperature_2m";
   try {
     const res = await fetch(url, { next: { revalidate: 900 }, signal: AbortSignal.timeout(1500) });
     if (!res.ok) return null;
@@ -65,8 +60,6 @@ async function forecast(lat: number, lon: number) {
     return {
       weather: weatherFrom(data.current.weather_code),
       cold: data.current.temperature_2m <= 1,
-      sunrise: hourOf(data.daily.sunrise[0]),
-      sunset: hourOf(data.daily.sunset[0]),
     };
   } catch {
     return null; // a slow or missing forecast never holds the page up
@@ -97,7 +90,7 @@ export async function getHere(preset?: string, weatherOverride?: string): Promis
     landmark,
     weather: weather ?? sky?.weather ?? "clear",
     cold: weather === "snow" || (sky?.cold ?? false),
-    sunrise: sky?.sunrise ?? 6.75,
-    sunset: sky?.sunset ?? 18,
+    lat: place.lat,
+    lon: place.lon,
   };
 }
